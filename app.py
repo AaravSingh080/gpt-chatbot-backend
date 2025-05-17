@@ -29,10 +29,15 @@ def chat():
             return jsonify({"error": "No message provided"}), 400
 
         # Call OpenAI Chat API
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": user_message}]
-        )
+        try:
+    response = openai.ChatCompletion.create(
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": user_message}]
+    )
+except Exception as e:
+    print("🔥 ERROR FROM OPENAI:", str(e))
+    return jsonify({"error": f"OpenAI error: {str(e)}"}), 500
+
 
         # Extract reply
         bot_reply = response['choices'][0]['message']['content']
