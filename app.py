@@ -1,42 +1,41 @@
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-import os
-import time
-from openai import OpenAI
+const express = require('express');
+const cors = require('cors');
+const { OpenAI } = require('openai');
+require('dotenv').config();
 
-app = Flask(__name__)
-CORS(app)
+const app = express();
+const port = process.env.PORT || 3000;
 
-# Load OpenAI API key from environment variable
-client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+app.use(cors()); // ✅ allows any frontend to access this backend
+app.use(express.json());
 
-@app.route('/chat', methods=['POST'])
-def chat():
-    try:
-        data = request.get_json(force=True)
-        user_message = data.get("message")
+// test route
+app.get('/', (req, res) => {
+  res.send('✅ GPTGRIDX backend is working!');
+});
 
-        if not user_message:
-            return jsonify({"error": "No message provided"}), 400
+// chat route
+app.post('/api/chat', async (req, res) => {
+  try {
+    const { message } = req.body;
 
-        print("USER:", user_message)
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
 
-        start = time.time()
+    const response = await openai.chat.completions.create({
+      model: 'gpt-3.5-turbo',
+      messages: [{ role: 'user', content: message }],
+    });
 
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": user_message}]
-        )
+    const reply = response.choices[0].message.content.trim();
+    res.json({ reply });
+  } catch (err) {
+    console.error('❌ OpenAI error:', err);
+    res.status(500).json({ reply: 'Something went wrong.' });
+  }
+});
 
-        bot_reply = response.choices[0].message.content.strip()
-        duration = round(time.time() - start, 2)
-        print(f"BOT REPLY ({duration}s):", bot_reply)
-
-        return jsonify({"reply": bot_reply})
-
-    except Exception as e:
-        print("🔥 ERROR:", str(e))
-        return jsonify({"error": f"OpenAI error: {str(e)}"}), 500
-
-if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=3000)
+app.listen(port, () => {
+  console.log(`✅ Server running on http://localhost:${port}`);
+});
